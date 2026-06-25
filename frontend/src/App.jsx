@@ -24,6 +24,7 @@ function App() {
   const [error, setError] = useState('');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
+  const shouldRestartRef = useRef(false);
 
   function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -32,54 +33,79 @@ function App() {
       return;
     }
 
+    // Stop any existing instance
+    if (recognitionRef.current) {
+      shouldRestartRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    let finalTranscript = answer;
-
     recognition.onresult = (event) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      let finalText = '';
+      let interimText = '';
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
+          finalText += event.results[i][0].transcript;
         } else {
-          interim += event.results[i][0].transcript;
+          interimText += event.results[i][0].transcript;
         }
       }
-      setAnswer(finalTranscript + interim);
+      setAnswer(finalText + interimText);
     };
 
     recognition.onerror = (event) => {
-      if (event.error !== 'no-speech') {
-        setError(`Speech recognition error: ${event.error}`);
+      if (event.error === 'not-allowed') {
+        setError('Microphone access denied. Please allow microphone permission in your browser.');
+        shouldRestartRef.current = false;
+        setIsListening(false);
+      } else if (event.error === 'no-speech') {
+        // Silence — don't show error, will auto-restart
+      } else if (event.error !== 'aborted') {
+        setError(`Speech error: ${event.error}`);
       }
-      setIsListening(false);
     };
 
     recognition.onend = () => {
-      // Only reset if user hasn't manually stopped
-      if (recognitionRef.current) {
-        // Restart to keep listening (browser stops after silence)
-        try {
-          recognition.start();
-        } catch (e) {
-          setIsListening(false);
-        }
+      // Auto-restart if user hasn't clicked Stop
+      if (shouldRestartRef.current) {
+        setTimeout(() => {
+          if (shouldRestartRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              shouldRestartRef.current = false;
+              setIsListening(false);
+            }
+          }
+        }, 100);
+      } else {
+        setIsListening(false);
       }
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
+    shouldRestartRef.current = true;
+
+    try {
+      recognition.start();
+      setIsListening(true);
+      setError('');
+    } catch (e) {
+      setError('Could not start speech recognition. Check microphone permissions.');
+      shouldRestartRef.current = false;
+    }
   }
 
   function stopListening() {
-    const recognition = recognitionRef.current;
-    recognitionRef.current = null;
-    if (recognition) {
-      recognition.stop();
+    shouldRestartRef.current = false;
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
     setIsListening(false);
   }
@@ -145,6 +171,8 @@ function App() {
 
   async function submitAnswer() {
     if (!answer.trim()) return;
+    // Stop listening if active
+    if (isListening) stopListening();
     const currentAnswer = answer;
     setAnswer('');
     setMessages(prev => [...prev, { from: 'candidate', text: currentAnswer }]);
@@ -166,6 +194,7 @@ function App() {
   }
 
   async function endInterview() {
+    if (isListening) stopListening();
     setLoading(true);
     setError('');
     try {
@@ -274,6 +303,7 @@ function App() {
                   className={isListening ? 'mic-active' : 'mic'}
                   onClick={isListening ? stopListening : startListening}
                   title={isListening ? 'Stop recording' : 'Start voice input'}
+                  type="button"
                 >
                   {isListening ? <MicOff size={16}/> : <Mic size={16}/>}
                   {isListening ? ' Stop' : ' Speak'}
