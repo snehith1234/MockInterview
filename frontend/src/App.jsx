@@ -25,6 +25,46 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
   const shouldRestartRef = useRef(false);
+  const inactivityTimerRef = useRef(null);
+
+  const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+  function resetInactivityTimer() {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    if (sessionId && !report) {
+      inactivityTimerRef.current = setTimeout(() => {
+        handleInactivityEnd();
+      }, INACTIVITY_TIMEOUT);
+    }
+  }
+
+  async function handleInactivityEnd() {
+    if (!sessionId || report) return;
+    if (isListening) stopListening();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/interview/end/${sessionId}`, {
+        method: 'POST',
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Could not end interview');
+      setMessages(prev => [...prev, {
+        from: 'interviewer',
+        text: "It seems like you may have stepped away. I'll go ahead and wrap up the interview here. Thank you for your time — we'll review everything and follow up with next steps. If you have any questions, feel free to reach out via email."
+      }]);
+      setReport(data.report);
+      setEvaluations(data.evaluations || []);
+      setSessionId(null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -167,6 +207,7 @@ function App() {
       setProfile(data.profile);
       setPlan(data.interview_plan);
       setMessages([{ from: 'interviewer', text: data.first_question }]);
+      resetInactivityTimer();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -191,6 +232,7 @@ function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Could not submit answer');
       setMessages(prev => [...prev, { from: 'interviewer', text: data.next_question }]);
+      resetInactivityTimer();
 
       // If interview was auto-ended by the agent
       if (data.interview_ended) {
@@ -207,6 +249,7 @@ function App() {
 
   async function endInterview() {
     if (isListening) stopListening();
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     setLoading(true);
     setError('');
     try {
