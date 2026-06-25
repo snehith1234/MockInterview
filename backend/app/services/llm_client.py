@@ -3,9 +3,12 @@ import re
 from typing import Any, Dict, Optional
 from openai import OpenAI
 
-# Thread-local-like storage for per-request LLM settings
+# Per-request LLM settings
 _current_api_key: Optional[str] = None
 _current_model: Optional[str] = None
+
+# Models that require the Responses API
+RESPONSES_API_MODELS = {"gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-5.4-nano", "gpt-5-mini", "gpt-5"}
 
 
 def set_llm_config(api_key: Optional[str], model: Optional[str]):
@@ -30,6 +33,11 @@ def _get_client() -> Optional[OpenAI]:
     return OpenAI(api_key=api_key)
 
 
+def _uses_responses_api(model: str) -> bool:
+    """Check if the model uses the newer Responses API."""
+    return model in RESPONSES_API_MODELS
+
+
 def _extract_json(text: str) -> Dict[str, Any]:
     try:
         return json.loads(text)
@@ -46,15 +54,27 @@ def chat_text(system_prompt: str, user_prompt: str, temperature: float = 0.3) ->
         return "MOCK_LLM_ENABLED"
 
     _, model = get_llm_config()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=temperature,
-    )
-    return response.choices[0].message.content or ""
+
+    if _uses_responses_api(model):
+        # GPT-5 family — use Responses API
+        response = client.responses.create(
+            model=model,
+            instructions=system_prompt,
+            input=user_prompt,
+            temperature=temperature,
+        )
+        return response.output_text or ""
+    else:
+        # GPT-4 and older — use Chat Completions API
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+        )
+        return response.choices[0].message.content or ""
 
 
 def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) -> Dict[str, Any]:
@@ -63,13 +83,26 @@ def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) ->
         return {}
 
     _, model = get_llm_config()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=temperature,
-    )
-    content = response.choices[0].message.content or "{}"
+
+    if _uses_responses_api(model):
+        # GPT-5 family — use Responses API
+        response = client.responses.create(
+            model=model,
+            instructions=system_prompt + "\nReturn valid JSON only.",
+            input=user_prompt,
+            temperature=temperature,
+        )
+        content = response.output_text or "{}"
+    else:
+        # GPT-4 and older — use Chat Completions API
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+        )
+        content = response.choices[0].message.content or "{}"
+
     return _extract_json(content)
