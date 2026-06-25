@@ -7,7 +7,10 @@ from openai import OpenAI
 _current_api_key: Optional[str] = None
 _current_model: Optional[str] = None
 
-# Models that require the Responses API
+# Models that don't support temperature parameter
+NO_TEMPERATURE_MODELS = {"gpt-5.5", "gpt-5", "gpt-5-mini"}
+
+
 RESPONSES_API_MODELS = {"gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-5.4-nano", "gpt-5-mini", "gpt-5"}
 
 
@@ -58,12 +61,14 @@ def chat_text(system_prompt: str, user_prompt: str, temperature: float = 0.3) ->
     try:
         if _uses_responses_api(model):
             # GPT-5 family — use Responses API
-            response = client.responses.create(
-                model=model,
-                instructions=system_prompt,
-                input=user_prompt,
-                temperature=temperature,
-            )
+            kwargs = {
+                "model": model,
+                "instructions": system_prompt,
+                "input": user_prompt,
+            }
+            if model not in NO_TEMPERATURE_MODELS:
+                kwargs["temperature"] = temperature
+            response = client.responses.create(**kwargs)
             return response.output_text or ""
         else:
             # GPT-4 and older — use Chat Completions API
@@ -80,14 +85,16 @@ def chat_text(system_prompt: str, user_prompt: str, temperature: float = 0.3) ->
         # If Responses API fails, try Chat Completions as fallback
         if _uses_responses_api(model):
             try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
+                fallback_kwargs = {
+                    "model": model,
+                    "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    temperature=temperature,
-                )
+                }
+                if model not in NO_TEMPERATURE_MODELS:
+                    fallback_kwargs["temperature"] = temperature
+                response = client.chat.completions.create(**fallback_kwargs)
                 return response.choices[0].message.content or ""
             except Exception:
                 pass
@@ -104,12 +111,14 @@ def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) ->
     try:
         if _uses_responses_api(model):
             # GPT-5 family — use Responses API
-            response = client.responses.create(
-                model=model,
-                instructions=system_prompt + "\nReturn valid JSON only.",
-                input=user_prompt,
-                temperature=temperature,
-            )
+            kwargs = {
+                "model": model,
+                "instructions": system_prompt + "\nReturn valid JSON only.",
+                "input": user_prompt,
+            }
+            if model not in NO_TEMPERATURE_MODELS:
+                kwargs["temperature"] = temperature
+            response = client.responses.create(**kwargs)
             content = response.output_text or "{}"
         else:
             # GPT-4 and older — use Chat Completions API
@@ -126,14 +135,16 @@ def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) ->
         # If Responses API fails, try Chat Completions as fallback
         if _uses_responses_api(model):
             try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
+                fallback_kwargs = {
+                    "model": model,
+                    "messages": [
                         {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
                         {"role": "user", "content": user_prompt},
                     ],
-                    temperature=temperature,
-                )
+                }
+                if model not in NO_TEMPERATURE_MODELS:
+                    fallback_kwargs["temperature"] = temperature
+                response = client.chat.completions.create(**fallback_kwargs)
                 content = response.choices[0].message.content or "{}"
             except Exception:
                 raise Exception(f"LLM call failed for model '{model}': {str(e)}")
