@@ -46,16 +46,21 @@ function App() {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event) => {
-      let finalText = '';
-      let interimText = '';
+      let transcript = '';
       for (let i = 0; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript;
-        } else {
-          interimText += event.results[i][0].transcript;
-        }
+        transcript += event.results[i][0].transcript;
       }
-      setAnswer(finalText + interimText);
+      if (transcript) {
+        setAnswer(transcript);
+      }
+    };
+
+    recognition.onaudiostart = () => {
+      console.log('Audio capturing started');
+    };
+
+    recognition.onspeechstart = () => {
+      console.log('Speech detected');
     };
 
     recognition.onerror = (event) => {
