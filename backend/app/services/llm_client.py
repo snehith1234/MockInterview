@@ -55,26 +55,43 @@ def chat_text(system_prompt: str, user_prompt: str, temperature: float = 0.3) ->
 
     _, model = get_llm_config()
 
-    if _uses_responses_api(model):
-        # GPT-5 family — use Responses API
-        response = client.responses.create(
-            model=model,
-            instructions=system_prompt,
-            input=user_prompt,
-            temperature=temperature,
-        )
-        return response.output_text or ""
-    else:
-        # GPT-4 and older — use Chat Completions API
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=temperature,
-        )
-        return response.choices[0].message.content or ""
+    try:
+        if _uses_responses_api(model):
+            # GPT-5 family — use Responses API
+            response = client.responses.create(
+                model=model,
+                instructions=system_prompt,
+                input=user_prompt,
+                temperature=temperature,
+            )
+            return response.output_text or ""
+        else:
+            # GPT-4 and older — use Chat Completions API
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=temperature,
+            )
+            return response.choices[0].message.content or ""
+    except Exception as e:
+        # If Responses API fails, try Chat Completions as fallback
+        if _uses_responses_api(model):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=temperature,
+                )
+                return response.choices[0].message.content or ""
+            except Exception:
+                pass
+        raise Exception(f"LLM call failed for model '{model}': {str(e)}")
 
 
 def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) -> Dict[str, Any]:
@@ -84,25 +101,43 @@ def chat_json(system_prompt: str, user_prompt: str, temperature: float = 0.2) ->
 
     _, model = get_llm_config()
 
-    if _uses_responses_api(model):
-        # GPT-5 family — use Responses API
-        response = client.responses.create(
-            model=model,
-            instructions=system_prompt + "\nReturn valid JSON only.",
-            input=user_prompt,
-            temperature=temperature,
-        )
-        content = response.output_text or "{}"
-    else:
-        # GPT-4 and older — use Chat Completions API
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=temperature,
-        )
-        content = response.choices[0].message.content or "{}"
+    try:
+        if _uses_responses_api(model):
+            # GPT-5 family — use Responses API
+            response = client.responses.create(
+                model=model,
+                instructions=system_prompt + "\nReturn valid JSON only.",
+                input=user_prompt,
+                temperature=temperature,
+            )
+            content = response.output_text or "{}"
+        else:
+            # GPT-4 and older — use Chat Completions API
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=temperature,
+            )
+            content = response.choices[0].message.content or "{}"
+    except Exception as e:
+        # If Responses API fails, try Chat Completions as fallback
+        if _uses_responses_api(model):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt + "\nReturn valid JSON only."},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=temperature,
+                )
+                content = response.choices[0].message.content or "{}"
+            except Exception:
+                raise Exception(f"LLM call failed for model '{model}': {str(e)}")
+        else:
+            raise Exception(f"LLM call failed for model '{model}': {str(e)}")
 
     return _extract_json(content)
