@@ -2,11 +2,11 @@ services:
   # Backend API
   - type: web
     name: mock-interview-api
-    runtime: python
+    runtime: docker
     region: oregon
     plan: free
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     rootDir: backend
     envVars:
       - key: OPENAI_API_KEY
