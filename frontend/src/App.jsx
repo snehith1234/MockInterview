@@ -242,8 +242,14 @@ function App() {
             />
             <label>LLM Model</label>
             <select value={llmModel} onChange={e => setLlmModel(e.target.value)}>
-              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+              <option value="gpt-5.5">GPT-5.5</option>
+              <option value="gpt-5.4-mini">GPT-5.4 Mini</option>
+              <option value="gpt-5.4">GPT-5.4</option>
+              <option value="gpt-5.4-nano">GPT-5.4 Nano</option>
+              <option value="gpt-5-mini">GPT-5 Mini</option>
+              <option value="gpt-5">GPT-5</option>
               <option value="gpt-4.1">GPT-4.1</option>
+              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
               <option value="gpt-4o">GPT-4o</option>
               <option value="gpt-4o-mini">GPT-4o Mini</option>
               <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
