@@ -37,21 +37,37 @@ function App() {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    let finalTranscript = answer;
+
     recognition.onresult = (event) => {
-      let transcript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
       }
-      setAnswer(transcript);
+      setAnswer(finalTranscript + interim);
     };
 
     recognition.onerror = (event) => {
-      setError(`Speech recognition error: ${event.error}`);
+      if (event.error !== 'no-speech') {
+        setError(`Speech recognition error: ${event.error}`);
+      }
       setIsListening(false);
     };
 
     recognition.onend = () => {
-      setIsListening(false);
+      // Only reset if user hasn't manually stopped
+      if (recognitionRef.current) {
+        // Restart to keep listening (browser stops after silence)
+        try {
+          recognition.start();
+        } catch (e) {
+          setIsListening(false);
+        }
+      }
     };
 
     recognitionRef.current = recognition;
@@ -60,8 +76,10 @@ function App() {
   }
 
   function stopListening() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    if (recognition) {
+      recognition.stop();
     }
     setIsListening(false);
   }
