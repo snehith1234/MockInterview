@@ -26,6 +26,7 @@ Evaluate this interview answer.
 Role: {session['role']}
 Candidate profile: {session['profile']}
 Interview plan: {session['plan']}
+Questions asked so far in this interview: {len(session.get('evaluations', [])) + 1}
 
 Question:
 {question}
@@ -39,6 +40,12 @@ Score from 1 to 10 using:
 - communication
 - problem_solving
 - role_relevance
+
+IMPORTANT for recommended_next_action:
+- If this is already the 2nd+ question on the same topic, ALWAYS recommend "move_to_next_topic"
+- If the answer was strong (7+), recommend "move_to_next_topic" to cover more breadth
+- If the answer was weak (< 5), recommend "ask_clarifying_followup" but only for ONE follow-up
+- Only recommend "ask_deeper_followup" if the answer was moderate AND this is the first question on this topic
 
 Return JSON with:
 score, technical_accuracy, depth, communication, problem_solving, role_relevance,

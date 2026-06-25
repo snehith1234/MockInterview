@@ -27,15 +27,19 @@ Resume:
 Job Description:
 {job_description[:8000]}
 
+IMPORTANT: Extract ALL specific technical skills, tools, platforms, and competency areas mentioned in the job description. These will be used to build the interview plan and ensure complete coverage.
+
 Return JSON with exactly these keys:
-- candidate_level
-- primary_skills
-- secondary_skills
-- job_required_skills
-- matching_skills
-- missing_or_weak_skills
-- interview_focus_areas
-- resume_based_question_topics
+- candidate_level (string: junior/mid/senior assessment)
+- primary_skills (list: candidate's strongest skills from resume)
+- secondary_skills (list: candidate's secondary skills)
+- job_required_skills (list: ALL skills/tools/platforms explicitly mentioned in the job description)
+- job_required_competencies (list: broader competency areas the JD requires, e.g. "Windows/IIS administration", "CI/CD pipeline management", "Cloud infrastructure", "Scripting/automation", "Incident management", "Developer support")
+- matching_skills (list: skills the candidate has that match the JD)
+- missing_or_weak_skills (list: JD requirements the candidate may lack or hasn't demonstrated)
+- interview_focus_areas (list: the most important areas to test, prioritizing gaps and critical JD requirements)
+- resume_based_question_topics (list: specific resume claims that should be validated)
+- must_test_competencies (list: the top 6-8 distinct competency areas that MUST each get at least one question)
 """
     return chat_json(
         "You are a senior technical recruiting analyst.",
