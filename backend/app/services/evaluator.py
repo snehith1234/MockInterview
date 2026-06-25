@@ -42,10 +42,12 @@ Score from 1 to 10 using:
 - role_relevance
 
 IMPORTANT for recommended_next_action:
-- If this is already the 2nd+ question on the same topic, ALWAYS recommend "move_to_next_topic"
-- If the answer was strong (7+), recommend "move_to_next_topic" to cover more breadth
-- If the answer was weak (< 5), recommend "ask_clarifying_followup" but only for ONE follow-up
-- Only recommend "ask_deeper_followup" if the answer was moderate AND this is the first question on this topic
+- If this is the 3rd+ question on the same narrow topic, ALWAYS recommend "move_to_next_topic"
+- If the answer was strong (7+) and this topic is well-covered, recommend "move_to_next_topic"
+- If the answer was strong (7+) but revealed a critical gap on a PRIMARY job requirement, recommend "ask_deeper_followup"
+- If the answer was weak (< 5) and this is a critical job requirement, recommend "ask_clarifying_followup" for ONE more attempt
+- If the answer was weak (< 5) on a secondary topic, recommend "move_to_next_topic"
+- Only recommend "ask_deeper_followup" if the topic is a primary job requirement AND the answer warrants deeper exploration
 
 Return JSON with:
 score, technical_accuracy, depth, communication, problem_solving, role_relevance,
