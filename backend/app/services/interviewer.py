@@ -60,7 +60,7 @@ RULES:
     return chat_text("You are a professional technical interviewer conducting a structured interview. You ask one question at a time.", prompt, temperature=0.4)
 
 
-def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Dict[str, Any]] = None) -> str:
+def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Dict[str, Any]] = None, time_status: Optional[Dict[str, Any]] = None) -> str:
     api_key, _ = get_llm_config()
     if not api_key:
         action = (last_evaluation or {}).get("recommended_next_action", "move_to_next_topic")
@@ -79,6 +79,34 @@ def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Di
 
     # Determine if we should move to next topic
     recommended_action = (last_evaluation or {}).get("recommended_next_action", "move_to_next_topic")
+    last_score = (last_evaluation or {}).get("score", 5)
+
+    # Time context
+    time_info = ""
+    if time_status:
+        elapsed = time_status.get("elapsed_minutes", 0)
+        remaining = time_status.get("remaining_minutes", 0)
+        is_overtime = time_status.get("is_overtime", False)
+        if is_overtime:
+            time_info = f"\n⚠️ OVERTIME: Interview is {time_status.get('overtime_minutes', 0):.0f} minutes past scheduled duration. You should wrap up within 2-3 more questions MAX. Start transitioning toward closing."
+        elif remaining <= 5:
+            time_info = f"\n⏰ TIME WARNING: Only ~{remaining:.0f} minutes remaining. Ask at most 1-2 more questions, then prepare to close the interview."
+        elif remaining <= 10:
+            time_info = f"\n⏰ Time check: ~{remaining:.0f} minutes remaining. Be mindful of coverage — skip less critical topics if needed."
+
+    # Candidate struggling context
+    consecutive_weak = 0
+    for ev in reversed(session.get("evaluations", [])):
+        if ev.get("evaluation", {}).get("score", 5) < 4:
+            consecutive_weak += 1
+        else:
+            break
+
+    candidate_context = ""
+    if consecutive_weak >= 3:
+        candidate_context = "\n⚠️ CANDIDATE STRUGGLING: The candidate has given weak answers to the last 3 questions. Consider: (a) moving to a completely different topic where they may have more strength, or (b) asking a simpler, more foundational question to give them a chance to recover."
+    elif consecutive_weak >= 2:
+        candidate_context = "\nNote: The candidate's last 2 answers were weak. Move to a different topic area where they may perform better. Don't keep pressing on an area where they're clearly uncomfortable."
 
     prompt = f"""
 You are in the middle of a structured mock interview.
@@ -94,7 +122,10 @@ Current section goal: {current_section.get('goal', '')}
 Competency areas to test in this section: {current_section.get('competency_areas', [])}
 
 Questions asked so far: {questions_asked} / ~{total_max_questions} total planned
+Last answer score: {last_score}/10
 Last evaluation recommendation: {recommended_action}
+{time_info}
+{candidate_context}
 
 QUESTIONS ALREADY ASKED (do NOT repeat these topics):
 {covered_topics}
@@ -127,6 +158,13 @@ WHEN TO MOVE ON (max 1-2 questions):
 - The candidate has already demonstrated clear competence in this area
 - You're drilling into sub-details of a sub-detail (e.g., regex syntax within log analysis within Linux troubleshooting)
 - The candidate has given a weak answer and one clarification didn't help — note it and move on
+
+HANDLING WEAK/NO ANSWERS:
+- If the candidate says "I don't know" or gives a very short/vague answer, DO NOT press them repeatedly on the same topic.
+- Gracefully acknowledge: "No problem, let's move on to a different area."
+- Move to a DIFFERENT competency area where they may have more strength.
+- If they've struggled on 2+ consecutive questions in one domain, switch to a completely different domain.
+- Never make the candidate feel bad. Keep it professional and supportive.
 
 TOPIC TRANSITION EXAMPLES:
 - After 2-3 questions on Linux troubleshooting → transition to Windows/IIS, or AWS, or CI/CD

@@ -191,6 +191,13 @@ function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Could not submit answer');
       setMessages(prev => [...prev, { from: 'interviewer', text: data.next_question }]);
+
+      // If interview was auto-ended by the agent
+      if (data.interview_ended) {
+        setReport(data.report || '');
+        setEvaluations(data.evaluations || []);
+        setSessionId(null);
+      }
     } catch (e) {
       setError(e.message);
     } finally {
