@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Upload, Play, Send, Square, FileText, Key } from 'lucide-react';
+import { Upload, Play, Send, Square, FileText, Key, Mic, MicOff } from 'lucide-react';
 import './style.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8020';
@@ -22,6 +22,49 @@ function App() {
   const [evaluations, setEvaluations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  function startListening() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError('Speech recognition is not supported in your browser. Try Chrome or Edge.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setAnswer(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      setError(`Speech recognition error: ${event.error}`);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }
+
+  function stopListening() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  }
 
   function getHeaders(contentType = null) {
     const headers = {};
@@ -179,9 +222,9 @@ function App() {
             </div>
           </div>
 
-          <label>Upload Resume PDF</label>
-          <input type="file" accept="application/pdf" onChange={e => e.target.files?.[0] && uploadResume(e.target.files[0])} />
-          <small>{resumeText ? `Resume loaded: ${resumeText.length} characters` : 'PDF only for this MVP.'}</small>
+          <label>Upload Resume (PDF or Word)</label>
+          <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={e => e.target.files?.[0] && uploadResume(e.target.files[0])} />
+          <small>{resumeText ? `Resume loaded: ${resumeText.length} characters` : 'Supports PDF and Word (.doc, .docx) files.'}</small>
 
           <label>Or paste resume text</label>
           <textarea value={resumeText} onChange={e => setResumeText(e.target.value)} placeholder="Paste resume text here..." />
@@ -207,11 +250,20 @@ function App() {
           </div>
           {sessionId && !report && (
             <div className="answerBox">
-              <textarea value={answer} onChange={e => setAnswer(e.target.value)} placeholder="Type your answer..." />
+              <textarea value={answer} onChange={e => setAnswer(e.target.value)} placeholder="Type your answer or click the mic to speak..." />
               <div className="buttonRow">
+                <button
+                  className={isListening ? 'mic-active' : 'mic'}
+                  onClick={isListening ? stopListening : startListening}
+                  title={isListening ? 'Stop recording' : 'Start voice input'}
+                >
+                  {isListening ? <MicOff size={16}/> : <Mic size={16}/>}
+                  {isListening ? ' Stop' : ' Speak'}
+                </button>
                 <button onClick={submitAnswer} disabled={loading || !answer.trim()}><Send size={16}/> Submit Answer</button>
                 <button className="secondary" onClick={endInterview} disabled={loading}><Square size={16}/> End Interview</button>
               </div>
+              {isListening && <small className="listening-indicator">🔴 Listening... Speak your answer</small>}
             </div>
           )}
         </section>
