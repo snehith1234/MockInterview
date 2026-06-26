@@ -18,6 +18,10 @@ backend/uploads/*
 .DS_Store
 Thumbs.db
 
+# Interview outputs (local test files)
+interview-*.txt
+interview-*.md
+
 # Node
 node_modules/
 frontend/node_modules/
