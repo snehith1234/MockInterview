@@ -83,24 +83,36 @@ def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Di
 
     # Time context
     time_info = ""
-    max_questions = 12 if session.get("duration_minutes", 30) <= 30 else 20
-    remaining_questions = max_questions - questions_asked
+    soft_cap = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    hard_cap = soft_cap + 4
+    remaining_to_soft = soft_cap - questions_asked
+    remaining_to_hard = hard_cap - questions_asked
 
     if time_status:
         elapsed = time_status.get("elapsed_minutes", 0)
         remaining = time_status.get("remaining_minutes", 0)
         is_overtime = time_status.get("is_overtime", False)
         if is_overtime:
-            time_info = f"\n⚠️ OVERTIME: Interview is {time_status.get('overtime_minutes', 0):.0f} minutes past scheduled duration. You should wrap up within 1-2 more questions MAX."
+            time_info = f"\n⚠️ OVERTIME: Interview is {time_status.get('overtime_minutes', 0):.0f} minutes past scheduled duration. Use remaining questions ONLY for untested critical JD skills."
         elif remaining <= 5:
-            time_info = f"\n⏰ TIME WARNING: Only ~{remaining:.0f} minutes remaining. Ask at most 1-2 more questions, then prepare to close the interview."
+            time_info = f"\n⏰ TIME WARNING: Only ~{remaining:.0f} minutes remaining. Prioritize any untested critical competency areas."
         elif remaining <= 10:
             time_info = f"\n⏰ Time check: ~{remaining:.0f} minutes remaining. Be mindful of coverage — skip less critical topics if needed."
 
-    if remaining_questions <= 3:
-        time_info += f"\n⚠️ QUESTION LIMIT: Only {remaining_questions} questions remaining out of {max_questions} total. Prioritize uncovered competency areas."
-    elif remaining_questions <= 5:
-        time_info += f"\n📋 Question budget: {remaining_questions} questions left. Ensure you cover remaining competency areas."
+    if remaining_to_soft <= 0:
+        time_info += f"\n⚠️ PAST SOFT CAP ({soft_cap} questions asked). You have up to {remaining_to_hard} more questions ONLY to cover critical JD skills that haven't been tested yet. Do NOT continue topics already covered. If all critical skills have been assessed, end the interview."
+    elif remaining_to_soft <= 3:
+        time_info += f"\n📋 Approaching question target: {remaining_to_soft} questions until soft cap. Review if any CRITICAL JD competencies are still untested — cover those next."
+
+    # Build list of potentially uncovered areas
+    plan_sections = plan.get("sections", [])
+    all_competencies = []
+    for s in plan_sections:
+        all_competencies.extend(s.get("competency_areas", []))
+    
+    uncovered_hint = ""
+    if remaining_to_soft <= 2 and all_competencies:
+        uncovered_hint = f"\n🎯 PLANNED COMPETENCY AREAS (ensure these were all covered): {all_competencies}"
 
     # Candidate struggling context
     consecutive_weak = 0
@@ -129,11 +141,12 @@ CURRENT SECTION: {current_section.get('name', 'Unknown')}
 Current section goal: {current_section.get('goal', '')}
 Competency areas to test in this section: {current_section.get('competency_areas', [])}
 
-Questions asked so far: {questions_asked} / ~{total_max_questions} total planned
+Questions asked so far: {questions_asked} / ~{soft_cap} target ({hard_cap} hard limit)
 Last answer score: {last_score}/10
 Last evaluation recommendation: {recommended_action}
 {time_info}
 {candidate_context}
+{uncovered_hint}
 
 QUESTIONS ALREADY ASKED (do NOT repeat these topics):
 {covered_topics}

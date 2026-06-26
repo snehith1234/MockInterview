@@ -141,14 +141,22 @@ def submit_answer(request: AnswerRequest):
         should_end = True
         end_reason = "time_limit"
 
-    # Hard question cap: 30 min = max 12 questions, 60 min = max 20 questions
-    max_questions = 12 if session.get("duration_minutes", 30) <= 30 else 20
-    if len(session.get("evaluations", [])) >= max_questions:
+    # Soft question cap: 30 min = 12 questions, 60 min = 20 questions
+    # But allow up to 4 extra questions if critical JD skills are uncovered
+    soft_cap = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    hard_cap = soft_cap + 4
+    questions_asked_count = len(session.get("evaluations", []))
+
+    if questions_asked_count >= hard_cap:
         should_end = True
         end_reason = "questions_complete"
+    elif questions_asked_count >= soft_cap and not time_status["is_overtime"]:
+        # At soft cap but still within scheduled time — let interviewer decide
+        # It will use the "remaining questions" context to cover gaps
+        pass
 
     # Candidate unable to answer 4+ consecutive questions — politely end
-    elif consecutive_weak >= 4:
+    if not should_end and consecutive_weak >= 4:
         should_end = True
         end_reason = "candidate_struggling"
 
