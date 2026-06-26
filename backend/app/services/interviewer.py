@@ -83,16 +83,24 @@ def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Di
 
     # Time context
     time_info = ""
+    max_questions = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    remaining_questions = max_questions - questions_asked
+
     if time_status:
         elapsed = time_status.get("elapsed_minutes", 0)
         remaining = time_status.get("remaining_minutes", 0)
         is_overtime = time_status.get("is_overtime", False)
         if is_overtime:
-            time_info = f"\n⚠️ OVERTIME: Interview is {time_status.get('overtime_minutes', 0):.0f} minutes past scheduled duration. You should wrap up within 2-3 more questions MAX. Start transitioning toward closing."
+            time_info = f"\n⚠️ OVERTIME: Interview is {time_status.get('overtime_minutes', 0):.0f} minutes past scheduled duration. You should wrap up within 1-2 more questions MAX."
         elif remaining <= 5:
             time_info = f"\n⏰ TIME WARNING: Only ~{remaining:.0f} minutes remaining. Ask at most 1-2 more questions, then prepare to close the interview."
         elif remaining <= 10:
             time_info = f"\n⏰ Time check: ~{remaining:.0f} minutes remaining. Be mindful of coverage — skip less critical topics if needed."
+
+    if remaining_questions <= 3:
+        time_info += f"\n⚠️ QUESTION LIMIT: Only {remaining_questions} questions remaining out of {max_questions} total. Prioritize uncovered competency areas."
+    elif remaining_questions <= 5:
+        time_info += f"\n📋 Question budget: {remaining_questions} questions left. Ensure you cover remaining competency areas."
 
     # Candidate struggling context
     consecutive_weak = 0

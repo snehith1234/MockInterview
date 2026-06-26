@@ -141,6 +141,12 @@ def submit_answer(request: AnswerRequest):
         should_end = True
         end_reason = "time_limit"
 
+    # Hard question cap: 30 min = max 12 questions, 60 min = max 20 questions
+    max_questions = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    if len(session.get("evaluations", [])) >= max_questions:
+        should_end = True
+        end_reason = "questions_complete"
+
     # Candidate unable to answer 4+ consecutive questions — politely end
     elif consecutive_weak >= 4:
         should_end = True
