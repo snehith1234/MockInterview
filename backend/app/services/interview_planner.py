@@ -3,18 +3,40 @@ from app.services.llm_client import chat_json, get_llm_config
 
 
 def create_interview_plan(profile: Dict[str, Any], duration_minutes: int, role: str, difficulty: str = "mid") -> Dict[str, Any]:
-    if duration_minutes not in (30, 60):
-        duration_minutes = 30
+    # Allow any duration in multiples of 5, between 15 and 120
+    if duration_minutes < 15:
+        duration_minutes = 15
+    elif duration_minutes > 120:
+        duration_minutes = 120
+    # Round to nearest 5
+    duration_minutes = round(duration_minutes / 5) * 5
 
     api_key, _ = get_llm_config()
     if not api_key:
-        sections = [
-            {"name": "Introduction", "time_minutes": 3 if duration_minutes == 30 else 5, "goal": "Warm-up and background", "max_questions": 2, "sample_questions": ["Can you briefly introduce yourself and your recent work?"]},
-            {"name": "Resume Deep Dive", "time_minutes": 7 if duration_minutes == 30 else 10, "goal": "Validate resume experience", "max_questions": 3, "sample_questions": ["Walk me through one relevant project from your resume."]},
-            {"name": "Technical Core", "time_minutes": 10 if duration_minutes == 30 else 20, "goal": "Assess core technical depth", "max_questions": 4, "sample_questions": ["Explain a key concept required for this role."]},
-            {"name": "Scenario/System Design", "time_minutes": 7 if duration_minutes == 30 else 15, "goal": "Assess practical problem solving", "max_questions": 3, "sample_questions": ["How would you troubleshoot a production issue in this role?"]},
-            {"name": "Behavioral + Wrap-up", "time_minutes": 3 if duration_minutes == 30 else 10, "goal": "Assess communication and ownership", "max_questions": 2, "sample_questions": ["Tell me about a difficult technical problem you handled."]},
-        ]
+        # Scale sections based on duration
+        if duration_minutes <= 20:
+            sections = [
+                {"name": "Introduction", "time_minutes": 2, "goal": "Warm-up and background", "max_questions": 1, "sample_questions": ["Can you briefly introduce yourself?"]},
+                {"name": "Technical Core", "time_minutes": duration_minutes - 7, "goal": "Assess core technical depth", "max_questions": 4, "sample_questions": ["Explain a key concept required for this role."]},
+                {"name": "Scenario + Wrap-up", "time_minutes": 5, "goal": "Practical problem solving and closing", "max_questions": 2, "sample_questions": ["How would you troubleshoot a production issue?"]},
+            ]
+        elif duration_minutes <= 40:
+            sections = [
+                {"name": "Introduction", "time_minutes": 3, "goal": "Warm-up and background", "max_questions": 2, "sample_questions": ["Can you briefly introduce yourself and your recent work?"]},
+                {"name": "Resume Deep Dive", "time_minutes": 7, "goal": "Validate resume experience", "max_questions": 3, "sample_questions": ["Walk me through one relevant project from your resume."]},
+                {"name": "Technical Core", "time_minutes": duration_minutes - 20, "goal": "Assess core technical depth", "max_questions": 4, "sample_questions": ["Explain a key concept required for this role."]},
+                {"name": "Scenario/System Design", "time_minutes": 7, "goal": "Assess practical problem solving", "max_questions": 3, "sample_questions": ["How would you troubleshoot a production issue in this role?"]},
+                {"name": "Behavioral + Wrap-up", "time_minutes": 3, "goal": "Assess communication and ownership", "max_questions": 2, "sample_questions": ["Tell me about a difficult technical problem you handled."]},
+            ]
+        else:
+            sections = [
+                {"name": "Introduction", "time_minutes": 5, "goal": "Warm-up and background", "max_questions": 2, "sample_questions": ["Can you briefly introduce yourself and your recent work?"]},
+                {"name": "Resume Deep Dive", "time_minutes": 10, "goal": "Validate resume experience", "max_questions": 3, "sample_questions": ["Walk me through one relevant project from your resume."]},
+                {"name": "Technical Core", "time_minutes": int((duration_minutes - 35) * 0.5), "goal": "Assess core technical depth", "max_questions": 5, "sample_questions": ["Explain a key concept required for this role."]},
+                {"name": "Scenario/System Design", "time_minutes": int((duration_minutes - 35) * 0.3), "goal": "Assess practical problem solving", "max_questions": 4, "sample_questions": ["How would you troubleshoot a production issue in this role?"]},
+                {"name": "Tools & Automation", "time_minutes": int((duration_minutes - 35) * 0.2), "goal": "Assess tooling and automation skills", "max_questions": 3, "sample_questions": ["Describe an automation you built."]},
+                {"name": "Behavioral + Wrap-up", "time_minutes": 10, "goal": "Assess communication and ownership", "max_questions": 3, "sample_questions": ["Tell me about a difficult technical problem you handled."]},
+            ]
         return {"duration_minutes": duration_minutes, "difficulty": difficulty, "sections": sections}
 
     prompt = f"""

@@ -357,11 +357,16 @@ function App() {
 
           <div className="row">
             <div>
-              <label>Duration</label>
-              <select value={duration} onChange={e => setDuration(e.target.value)}>
-                <option value={30}>30 minutes</option>
-                <option value={60}>60 minutes</option>
-              </select>
+              <label>Duration (minutes)</label>
+              <input
+                type="number"
+                min="15"
+                max="120"
+                step="5"
+                value={duration}
+                onChange={e => setDuration(e.target.value)}
+              />
+              <small>15–120 min, in steps of 5</small>
             </div>
             <div>
               <label>Difficulty</label>

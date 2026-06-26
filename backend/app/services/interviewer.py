@@ -83,7 +83,7 @@ def generate_next_question(session: Dict[str, Any], last_evaluation: Optional[Di
 
     # Time context
     time_info = ""
-    soft_cap = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    soft_cap = max(6, round(session.get("duration_minutes", 30) / 2.5))
     hard_cap = soft_cap + 4
     remaining_to_soft = soft_cap - questions_asked
     remaining_to_hard = hard_cap - questions_asked

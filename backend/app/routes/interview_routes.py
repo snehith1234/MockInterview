@@ -141,9 +141,9 @@ def submit_answer(request: AnswerRequest):
         should_end = True
         end_reason = "time_limit"
 
-    # Soft question cap: 30 min = 12 questions, 60 min = 20 questions
+    # Soft question cap: roughly 1 question per 2.5 minutes
     # But allow up to 4 extra questions if critical JD skills are uncovered
-    soft_cap = 12 if session.get("duration_minutes", 30) <= 30 else 20
+    soft_cap = max(6, round(session.get("duration_minutes", 30) / 2.5))
     hard_cap = soft_cap + 4
     questions_asked_count = len(session.get("evaluations", []))
 
