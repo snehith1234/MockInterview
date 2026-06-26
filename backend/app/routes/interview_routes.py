@@ -20,6 +20,7 @@ class StartInterviewRequest(BaseModel):
     resume_text: str = Field(..., min_length=20)
     job_description: str = Field(..., min_length=20)
     role: str = Field(..., min_length=2)
+    company: Optional[str] = Field(default=None)
     duration_minutes: int = Field(default=30)
     difficulty: str = Field(default="mid")
 
@@ -75,13 +76,14 @@ def _count_consecutive_weak_answers(session: Dict[str, Any]) -> int:
 
 @router.post("/start")
 def start_interview(request: StartInterviewRequest):
-    profile = analyze_profile(request.resume_text, request.job_description, request.role)
+    profile = analyze_profile(request.resume_text, request.job_description, request.role, request.company)
     plan = create_interview_plan(profile, request.duration_minutes, request.role, request.difficulty)
 
     session_id = str(uuid4())
     session = {
         "session_id": session_id,
         "role": request.role,
+        "company": request.company,
         "duration_minutes": request.duration_minutes,
         "difficulty": request.difficulty,
         "profile": profile,

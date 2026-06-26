@@ -2,7 +2,7 @@ from typing import Dict, Any
 from app.services.llm_client import chat_json, get_llm_config
 
 
-def analyze_profile(resume_text: str, job_description: str, role: str) -> Dict[str, Any]:
+def analyze_profile(resume_text: str, job_description: str, role: str, company: str = None) -> Dict[str, Any]:
     api_key, _ = get_llm_config()
     if not api_key:
         return {
@@ -16,10 +16,12 @@ def analyze_profile(resume_text: str, job_description: str, role: str) -> Dict[s
             "resume_based_question_topics": ["Most recent project", "Technical decisions", "Production challenges"]
         }
 
+    company_context = f"\nCompany/Domain: {company}" if company else ""
+
     prompt = f"""
 Analyze this candidate for a mock interview.
 
-Role: {role}
+Role: {role}{company_context}
 
 Resume:
 {resume_text[:12000]}

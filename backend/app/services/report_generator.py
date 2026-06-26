@@ -95,9 +95,10 @@ Generate a DETAILED markdown report with ALL of the following sections:
 For EACH question asked:
 - Question text
 - Score (X/10)
+- Why this question was asked (what skill/competency the interviewer was testing)
 - What was good about the answer
 - What was missing or could be improved
-- Ideal answer outline (what a perfect answer would include)
+- Ideal answer (what a strong/perfect answer would sound like — specific, practical, with tools and examples)
 
 ## 6. Skills Gap Analysis
 - Skills demonstrated strongly

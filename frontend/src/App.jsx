@@ -11,6 +11,7 @@ function App() {
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
   const [role, setRole] = useState('DevOps Engineer');
+  const [company, setCompany] = useState('');
   const [duration, setDuration] = useState(30);
   const [difficulty, setDifficulty] = useState('mid');
   const [sessionId, setSessionId] = useState(null);
@@ -197,6 +198,7 @@ function App() {
           resume_text: resumeText,
           job_description: jdText,
           role,
+          company: company || undefined,
           duration_minutes: Number(duration),
           difficulty,
         }),
@@ -349,6 +351,9 @@ function App() {
 
           <label>Role</label>
           <input value={role} onChange={e => setRole(e.target.value)} />
+
+          <label>Company / Domain <small>(optional)</small></label>
+          <input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Amazon, Banking, Healthcare..." />
 
           <div className="row">
             <div>

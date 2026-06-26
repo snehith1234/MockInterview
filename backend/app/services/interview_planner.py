@@ -33,6 +33,12 @@ CRITICAL RULES:
 6. Each section needs: name, time_minutes, goal, max_questions, competency_areas (list of skills tested), and sample_questions.
 7. Sections should cover diverse areas like: core technical skills, platform/tools, troubleshooting, architecture/design, automation/scripting, collaboration/communication.
 8. Do NOT create multiple sections on the same narrow topic (e.g., don't have both "Linux Troubleshooting" and "Log Analysis" as separate sections).
+9. QUESTION DIFFICULTY DISTRIBUTION: Across all sections combined, enforce this ratio:
+   - 20% Easy questions (warm-up, basic concepts, resume walkthrough)
+   - 70% Medium questions (practical scenarios, tool usage, troubleshooting, project-based)
+   - 10% Hard questions (deep architecture, complex scenarios, edge cases, system design)
+   Mark each sample_question with its difficulty level: "easy", "medium", or "hard".
+10. The difficulty distribution should be applied naturally — easy questions at the start, hard questions toward the middle/end.
 
 Return JSON:
 {{"duration_minutes": {duration_minutes}, "difficulty": "{difficulty}", "sections": [
