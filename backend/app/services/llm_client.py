@@ -45,10 +45,38 @@ def _extract_json(text: str) -> Dict[str, Any]:
     try:
         return json.loads(text)
     except Exception:
-        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-        if not match:
-            raise ValueError(f"No JSON object found in LLM response: {text[:300]}")
-        return json.loads(match.group(0))
+        pass
+
+    # Try to find a JSON object in the text
+    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON object found in LLM response: {text[:300]}")
+
+    json_str = match.group(0)
+
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
+
+    # Fix invalid escape sequences (e.g., \S, \d, \w from regex in LLM output)
+    # Replace invalid escapes with double backslash
+    fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', json_str)
+    try:
+        return json.loads(fixed)
+    except json.JSONDecodeError:
+        pass
+
+    # Last resort: try to parse with strict=False
+    try:
+        return json.loads(json_str, strict=False)
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        return json.loads(fixed, strict=False)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Could not parse JSON from LLM response: {str(e)}\nContent: {text[:500]}")
 
 
 def chat_text(system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
