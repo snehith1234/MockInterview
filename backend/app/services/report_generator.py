@@ -119,6 +119,26 @@ A concrete 7-day study plan with:
 ## 9. Interview Tips
 - 3-5 specific tips for how they can improve their interview technique (not just technical knowledge)
 
+## 10. Qualification Probability Assessment
+Based on the overall interview performance, provide a realistic assessment of whether this candidate would advance to the next round. Evaluate from THREE different interviewer perspectives:
+
+**Liberal Interviewer** (focuses on potential, communication, and general fit):
+- Probability of advancing: X%
+- Reasoning: what this interviewer would focus on
+
+**Moderate Interviewer** (balanced between technical depth and overall capability):
+- Probability of advancing: X%
+- Reasoning: what this interviewer would weigh
+
+**Strict Interviewer** (demands precise technical answers, specific examples, and deep expertise):
+- Probability of advancing: X%
+- Reasoning: what would concern this interviewer
+
+**Overall Verdict:**
+- Most likely outcome (advance / borderline / reject)
+- The #1 thing that would tip the decision in the candidate's favor
+- The #1 risk that could cause rejection
+
 IMPORTANT:
 - Be specific and actionable, not generic
 - Reference the candidate's ACTUAL answers where possible
